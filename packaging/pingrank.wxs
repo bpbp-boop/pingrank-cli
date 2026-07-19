@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="PingRank.gg"
+      Manufacturer="PingRank.gg"
+      Version="$(var.Version)"
+      Language="1033"
+      UpgradeCode="{3D240732-35F5-4C29-AD56-64299C8C934E}"
+      Scope="perMachine">
+
+    <SummaryInformation Description="PingRank.gg game-server latency monitor" Manufacturer="PingRank.gg" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of PingRank.gg is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <Icon Id="PingRankIcon.ico" SourceFile="$(var.SourceDir)\pingrank.ico" />
+    <Property Id="ARPPRODUCTICON" Value="PingRankIcon.ico" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="PingRank">
+        <Component Id="CliComponent" Guid="{B50B487A-A90E-4DA8-9854-AE753F7B7AB3}" Bitness="always64">
+          <File Id="CliExe" Source="$(var.SourceDir)\pingrank.exe" KeyPath="yes" />
+        </Component>
+
+        <Component Id="ServiceComponent" Guid="{92EAA2E0-E89A-4621-A1D1-4CA3FA29EA37}" Bitness="always64">
+          <File Id="ServiceExe" Source="$(var.SourceDir)\pingrank-service.exe" KeyPath="yes" />
+          <ServiceInstall
+              Id="PingRankServiceInstall"
+              Name="PingRank"
+              DisplayName="PingRank.gg"
+              Description="Detects game server endpoints and records latency sessions."
+              Type="ownProcess"
+              Start="auto"
+              ErrorControl="normal"
+              Account="LocalSystem" />
+          <ServiceControl
+              Id="PingRankServiceControl"
+              Name="PingRank"
+              Start="install"
+              Stop="both"
+              Remove="uninstall"
+              Wait="yes" />
+        </Component>
+
+        <Component Id="TrayComponent" Guid="{C672FD57-C434-405D-8E99-D3145F919499}" Bitness="always64">
+          <File Id="TrayExe" Source="$(var.SourceDir)\pingrank-tray.exe" KeyPath="yes">
+            <Shortcut
+                Id="PingRankStartMenuShortcut"
+                Directory="ProgramMenuFolder"
+                Name="PingRank.gg"
+                Description="PingRank.gg service status"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="PingRankIcon.ico" />
+          </File>
+          <File Id="AppIcon" Source="$(var.SourceDir)\pingrank.ico" />
+          <RegistryValue
+              Root="HKLM"
+              Key="Software\Microsoft\Windows\CurrentVersion\Run"
+              Name="PingRank.gg"
+              Type="string"
+              Value="&quot;[#TrayExe]&quot; --startup" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="PingRank.gg" Level="1">
+      <ComponentRef Id="CliComponent" />
+      <ComponentRef Id="ServiceComponent" />
+      <ComponentRef Id="TrayComponent" />
+    </Feature>
+
+    <!-- A normal interactive install should show the tray immediately. Quiet
+         enterprise installs skip this and rely on the HKLM Run entry at the
+         user's next sign-in, avoiding a tray process in session 0. -->
+    <CustomAction
+        Id="LaunchTray"
+        FileRef="TrayExe"
+        ExeCommand=""
+        Execute="immediate"
+        Impersonate="yes"
+        Return="asyncNoWait" />
+    <InstallExecuteSequence>
+      <Custom Action="LaunchTray" After="InstallFinalize" Condition="NOT Installed AND UILevel &gt;= 3" />
+    </InstallExecuteSequence>
+  </Package>
+</Wix>

@@ -1,0 +1,75 @@
+# Builds the Windows CLI, service, tray companion, and WiX MSI on every v* tag,
+# with checksums and GitHub build-provenance attestations.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install WiX
+        shell: pwsh
+        run: dotnet tool install --global wix --version 6.0.2
+
+      - name: Build binaries and MSI
+        shell: pwsh
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          New-Item -ItemType Directory -Force dist | Out-Null
+          go build -trimpath -ldflags "-s -w -X main.clientVersion=$version" -o dist/pingrank.exe ./cmd/pingrank
+          go build -trimpath -ldflags "-s -w -X main.clientVersion=$version" -o dist/pingrank-service.exe ./cmd/pingrank-service
+          go build -trimpath -ldflags "-s -w -H windowsgui" -o dist/pingrank-tray.exe ./cmd/pingrank-tray
+          Copy-Item packaging/pingrank.ico dist/pingrank.ico
+          wix build packaging/pingrank.wxs -arch x64 -d SourceDir=dist -d Version=$version -pdbtype none -out "dist/pingrank.gg-$version-x64.msi"
+          Get-ChildItem dist -File | ForEach-Object {
+            $hash = (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          } | Set-Content -Encoding ascii dist/checksums.txt
+          Get-Content dist/checksums.txt
+
+      - name: Attest executable provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*.exe
+
+      - name: Attest installer provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*.msi
+
+      - name: Create release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $runUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          @(
+            "Built from source by GitHub Actions: $runUrl"
+            ""
+            "Verify provenance with: gh attestation verify <file> --owner $env:GITHUB_REPOSITORY_OWNER"
+            "Or check its SHA-256 against checksums.txt."
+          ) | Set-Content release-notes.md
+          $artifacts = Get-ChildItem dist -File | ForEach-Object FullName
+          gh release create $env:GITHUB_REF_NAME $artifacts --title $env:GITHUB_REF_NAME --notes-file release-notes.md

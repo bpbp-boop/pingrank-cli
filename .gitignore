@@ -1,0 +1,9 @@
+# build outputs
+*.exe
+*.msi
+*.wixpdb
+dist/
+.tools/
+
+# scratch/test output
+*.log

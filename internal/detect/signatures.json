@@ -1,0 +1,132 @@
+[
+  {
+    "gameId": "valorant",
+    "displayName": "Valorant",
+    "exeNames": ["VALORANT-Win64-Shipping.exe"]
+  },
+  {
+    "gameId": "cs2",
+    "displayName": "Counter-Strike 2",
+    "exeNames": ["cs2.exe"],
+    "hints": {
+      "expectedPorts": ["27015-27200"],
+      "probeMethod": "a2s",
+      "relayCidrs": ["155.133.0.0/16", "162.254.192.0/21", "146.66.152.0/21", "185.25.180.0/22", "205.196.6.0/24"],
+      "relayLabel": "valve-sdr"
+    }
+  },
+  {
+    "gameId": "dota2",
+    "displayName": "Dota 2",
+    "exeNames": ["dota2.exe"],
+    "hints": {
+      "expectedPorts": ["27015-28998"],
+      "probeMethod": "a2s",
+      "relayCidrs": ["155.133.0.0/16", "162.254.192.0/21", "146.66.152.0/21", "185.25.180.0/22", "205.196.6.0/24"],
+      "relayLabel": "valve-sdr"
+    }
+  },
+  {
+    "gameId": "lol",
+    "displayName": "League of Legends",
+    "exeNames": ["League of Legends.exe"]
+  },
+  {
+    "gameId": "fortnite",
+    "displayName": "Fortnite",
+    "exeNames": ["FortniteClient-Win64-Shipping.exe"],
+    "hints": { "expectedPorts": ["9000-9100"] }
+  },
+  {
+    "gameId": "rocketleague",
+    "displayName": "Rocket League",
+    "exeNames": ["RocketLeague.exe"],
+    "hints": { "expectedPorts": ["7000-9000"] }
+  },
+  {
+    "gameId": "apex",
+    "displayName": "Apex Legends",
+    "exeNames": ["r5apex.exe", "r5apex_dx12.exe"]
+  },
+  {
+    "gameId": "overwatch2",
+    "displayName": "Overwatch 2",
+    "exeNames": ["Overwatch.exe"]
+  },
+  {
+    "gameId": "cod",
+    "displayName": "Call of Duty",
+    "exeNames": ["cod.exe"]
+  },
+  {
+    "gameId": "gtaonline",
+    "displayName": "GTA Online",
+    "exeNames": ["GTA5.exe", "GTA5_Enhanced.exe"]
+  },
+  {
+    "gameId": "minecraft-bedrock",
+    "displayName": "Minecraft (Bedrock)",
+    "exeNames": ["Minecraft.Windows.exe"]
+  },
+  {
+    "gameId": "pubg",
+    "displayName": "PUBG: Battlegrounds",
+    "exeNames": ["TslGame.exe"]
+  },
+  {
+    "gameId": "r6siege",
+    "displayName": "Rainbow Six Siege",
+    "exeNames": ["RainbowSix.exe", "RainbowSix_DX11.exe"]
+  },
+  {
+    "gameId": "tarkov",
+    "displayName": "Escape from Tarkov",
+    "exeNames": ["EscapeFromTarkov.exe"]
+  },
+  {
+    "gameId": "destiny2",
+    "displayName": "Destiny 2",
+    "exeNames": ["destiny2.exe"]
+  },
+  {
+    "gameId": "wow",
+    "displayName": "World of Warcraft",
+    "exeNames": ["Wow.exe", "WowClassic.exe"]
+  },
+  {
+    "gameId": "ffxiv",
+    "displayName": "Final Fantasy XIV",
+    "exeNames": ["ffxiv_dx11.exe"]
+  },
+  {
+    "gameId": "warthunder",
+    "displayName": "War Thunder",
+    "exeNames": ["aces.exe"]
+  },
+  {
+    "gameId": "helldivers2",
+    "displayName": "Helldivers 2",
+    "exeNames": ["helldivers2.exe"],
+    "peerToPeer": true
+  },
+  {
+    "gameId": "thefinals",
+    "displayName": "The Finals",
+    "exeNames": ["Discovery.exe"]
+  },
+  {
+    "gameId": "marvelrivals",
+    "displayName": "Marvel Rivals",
+    "exeNames": ["Marvel-Win64-Shipping.exe"]
+  },
+  {
+    "gameId": "halo-infinite",
+    "displayName": "Halo Infinite",
+    "exeNames": ["HaloInfinite.exe"]
+  },
+  {
+    "gameId": "battlefield6",
+    "displayName": "Battlefield 6",
+    "exeNames": ["bf6.exe"]
+  }
+]
