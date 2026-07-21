@@ -141,6 +141,16 @@ gh attestation verify pingrank.exe --owner bpbp-boop
 
 or compare its SHA-256 with `checksums.txt`.
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io),
+certificate by [SignPath Foundation](https://signpath.org).
+
+One maintainer, [bpbp-boop](https://github.com/bpbp-boop), commits,
+reviews, and approves every release. The privacy policy at
+[pingrank.gg/privacy](https://pingrank.gg/privacy) lists what the app
+sends and what the server stores.
+
 ## License
 
 [MIT](LICENSE).
