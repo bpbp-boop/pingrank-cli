@@ -85,12 +85,12 @@ jobs:
           gh release create $env:GITHUB_REF_NAME $artifacts --title $env:GITHUB_REF_NAME --notes-file release-notes.md
 
       # Submits the new version to microsoft/winget-pkgs. Inert until the
-      # WINGET_TOKEN secret exists (a classic PAT with public_repo scope; a
-      # fork of microsoft/winget-pkgs must exist under this account). Do not
-      # set the secret before the first manual submission is merged — see
-      # packaging/README.md.
+      # WINGET_TOKEN is a classic PAT with public_repo scope, and a fork of
+      # microsoft/winget-pkgs must exist under this account. Set the repository
+      # variable WINGET_ENABLED to true after the first manual submission is
+      # merged. See packaging/README.md.
       - name: Submit to winget
-        if: ${{ env.WINGET_TOKEN != '' }}
+        if: ${{ vars.WINGET_ENABLED == 'true' && env.WINGET_TOKEN != '' }}
         uses: vedantmgoyal9/winget-releaser@v2
         with:
           identifier: PingRank.PingRank
