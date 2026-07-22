@@ -26,7 +26,7 @@ func TestOnEventValidatesSchemaAndTargetPID(t *testing.T) {
 	s.minimumQPC.Store(100)
 
 	valid := udpPayload(42)
-	rec := udpRecord(eventUDPv4Send, 101, valid)
+	rec := udpRecord(eventUDPv4Send, eventUDPSendOpcode, kernelNetworkKeywordIPv4, 101, valid)
 	s.onEvent(&rec)
 	runtime.KeepAlive(valid)
 
@@ -36,30 +36,49 @@ func TestOnEventValidatesSchemaAndTargetPID(t *testing.T) {
 	}
 
 	nonTarget := udpPayload(99)
-	rec = udpRecord(eventUDPv4Send, 102, nonTarget)
+	rec = udpRecord(eventUDPv4Send, eventUDPSendOpcode, kernelNetworkKeywordIPv4, 102, nonTarget)
 	s.onEvent(&rec)
 	runtime.KeepAlive(nonTarget)
 	if got := s.TakeFlows(); len(got) != 0 {
 		t.Fatalf("non-target flow was retained: %+v", got)
 	}
 
-	badSchema := udpPayload(42)
-	rec = udpRecord(eventUDPv4Send, 103, badSchema)
-	rec.EventHeader.EventDescriptor.Version = 1
-	s.onEvent(&rec)
-	runtime.KeepAlive(badSchema)
-	if got := s.schemaErrors.Load(); got != 1 {
-		t.Fatalf("schema errors = %d, want 1", got)
-	}
-
-	// A UDPv6 send event yields the IPv6 remote endpoint the same way.
+	// IPv6 has different event IDs but reuses the IPv4 send/receive opcodes.
 	v6 := udpPayloadV6(42)
-	rec = udpRecord(eventUDPv6Send, 104, v6)
+	rec = udpRecord(eventUDPv6Send, eventUDPSendOpcode, kernelNetworkKeywordIPv6, 103, v6)
 	s.onEvent(&rec)
 	runtime.KeepAlive(v6)
 	if got := s.TakeFlows(); len(got) != 1 || got[0].PID != 42 ||
 		got[0].Remote != netip.MustParseAddrPort("[2001:db8::4]:27015") {
 		t.Fatalf("valid v6 flow = %+v", got)
+	}
+
+	recv4 := udpPayload(42)
+	rec = udpRecord(eventUDPv4Recv, eventUDPRecvOpcode, kernelNetworkKeywordIPv4, 104, recv4)
+	s.onEvent(&rec)
+	runtime.KeepAlive(recv4)
+	if got := s.TakeFlows(); len(got) != 1 || got[0].Remote != netip.MustParseAddrPort("10.0.0.1:50000") {
+		t.Fatalf("valid v4 receive flow = %+v", got)
+	}
+
+	recv6 := udpPayloadV6(42)
+	rec = udpRecord(eventUDPv6Recv, eventUDPRecvOpcode, kernelNetworkKeywordIPv6, 105, recv6)
+	s.onEvent(&rec)
+	runtime.KeepAlive(recv6)
+	if got := s.TakeFlows(); len(got) != 1 || got[0].Remote != netip.MustParseAddrPort("[2001:db8::100]:50000") {
+		t.Fatalf("valid v6 receive flow = %+v", got)
+	}
+	if got := s.schemaErrors.Load(); got != 0 {
+		t.Fatalf("valid manifest descriptors produced %d schema errors", got)
+	}
+
+	badSchema := udpPayload(42)
+	rec = udpRecord(eventUDPv4Send, eventUDPSendOpcode, kernelNetworkKeywordIPv4, 106, badSchema)
+	rec.EventHeader.EventDescriptor.Version = 1
+	s.onEvent(&rec)
+	runtime.KeepAlive(badSchema)
+	if got := s.schemaErrors.Load(); got != 1 {
+		t.Fatalf("schema errors = %d, want 1", got)
 	}
 }
 
@@ -78,21 +97,21 @@ func udpPayloadV6(pid uint32) []byte {
 	b := make([]byte, 52) // full v6 template incl. trailing seqnum+connid
 	binary.LittleEndian.PutUint32(b[0:4], pid)
 	binary.LittleEndian.PutUint32(b[4:8], 120)
-	copy(b[8:24], netip.MustParseAddr("2001:db8::4").AsSlice())   // daddr
+	copy(b[8:24], netip.MustParseAddr("2001:db8::4").AsSlice())    // daddr
 	copy(b[24:40], netip.MustParseAddr("2001:db8::100").AsSlice()) // saddr
 	binary.BigEndian.PutUint16(b[40:42], 27015)
 	binary.BigEndian.PutUint16(b[42:44], 50000)
 	return b
 }
 
-func udpRecord(id uint16, timestamp int64, payload []byte) eventRecord {
+func udpRecord(id uint16, opcode uint8, keyword uint64, timestamp int64, payload []byte) eventRecord {
 	return eventRecord{
 		EventHeader: eventHeader{
 			TimeStamp:  timestamp,
 			ProviderID: kernelNetworkGUID,
 			EventDescriptor: eventDescriptor{
 				ID: id, Version: eventVersion, Level: traceLevelInformational,
-				Opcode: uint8(id), Task: eventUDPTask, Keyword: kernelNetworkKeywordIPv4,
+				Opcode: opcode, Task: eventUDPTask, Keyword: keyword,
 			},
 		},
 		UserDataLength: uint16(len(payload)),

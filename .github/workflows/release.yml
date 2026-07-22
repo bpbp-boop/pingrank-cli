@@ -29,6 +29,14 @@ jobs:
         shell: pwsh
         run: dotnet tool install --global wix --version 6.0.2
 
+      - name: Test
+        shell: pwsh
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: go test ./...
+
       - name: Build binaries and MSI
         shell: pwsh
         env:
@@ -73,3 +81,17 @@ jobs:
           ) | Set-Content release-notes.md
           $artifacts = Get-ChildItem dist -File | ForEach-Object FullName
           gh release create $env:GITHUB_REF_NAME $artifacts --title $env:GITHUB_REF_NAME --notes-file release-notes.md
+
+      # Submits the new version to microsoft/winget-pkgs. Inert until the
+      # WINGET_TOKEN secret exists (a classic PAT with public_repo scope; a
+      # fork of microsoft/winget-pkgs must exist under this account). Do not
+      # set the secret before the first manual submission is merged — see
+      # packaging/README.md.
+      - name: Submit to winget
+        if: ${{ secrets.WINGET_TOKEN != '' }}
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: PingRank.PingRank
+          release-tag: ${{ github.ref_name }}
+          installers-regex: '\.msi$'
+          token: ${{ secrets.WINGET_TOKEN }}

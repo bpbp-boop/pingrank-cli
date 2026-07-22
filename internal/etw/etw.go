@@ -55,14 +55,17 @@ var kernelNetworkGUID = windows.GUID{
 }
 
 // Event IDs from the provider manifest (task KERNEL_NETWORK_TASK_UDPIP).
-// The v6 variants carry the same fields with 16-byte addresses.
+// The v6 variants carry the same fields with 16-byte addresses and reuse the
+// v4 send/receive opcodes even though their event IDs differ.
 const (
-	eventUDPv4Send = 42
-	eventUDPv4Recv = 43
-	eventUDPv6Send = 58
-	eventUDPv6Recv = 59
-	eventUDPTask   = 11
-	eventVersion   = 0
+	eventUDPv4Send     = 42
+	eventUDPv4Recv     = 43
+	eventUDPv6Send     = 58
+	eventUDPv6Recv     = 59
+	eventUDPSendOpcode = 42
+	eventUDPRecvOpcode = 43
+	eventUDPTask       = 11
+	eventVersion       = 0
 )
 
 const (
@@ -623,14 +626,19 @@ func (s *Session) onEvent(rec *eventRecord) uintptr {
 		return 0
 	}
 	id := rec.EventHeader.EventDescriptor.ID
+	send := id == eventUDPv4Send || id == eventUDPv6Send
 	v4 := id == eventUDPv4Send || id == eventUDPv4Recv
 	v6 := id == eventUDPv6Send || id == eventUDPv6Recv
 	if !v4 && !v6 {
 		return 0
 	}
+	wantOpcode := uint8(eventUDPRecvOpcode)
+	if send {
+		wantOpcode = eventUDPSendOpcode
+	}
 	desc := rec.EventHeader.EventDescriptor
 	badLen := (v4 && rec.UserDataLength != udpEventV4Len) || (v6 && rec.UserDataLength < udpEventV6Min)
-	if desc.Version != eventVersion || desc.Task != eventUDPTask || desc.Opcode != uint8(id) ||
+	if desc.Version != eventVersion || desc.Task != eventUDPTask || desc.Opcode != wantOpcode ||
 		badLen || rec.UserData == nil {
 		s.schemaErrors.Add(1)
 		return 0
@@ -663,7 +671,6 @@ func (s *Session) onEvent(rec *eventRecord) uintptr {
 		sport = uint16(data[42])<<8 | uint16(data[43])
 	}
 
-	send := id == eventUDPv4Send || id == eventUDPv6Send
 	var key flowKey
 	key.pid = pid
 	if send {
