@@ -14,6 +14,8 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -88,10 +90,10 @@ jobs:
       # set the secret before the first manual submission is merged — see
       # packaging/README.md.
       - name: Submit to winget
-        if: ${{ secrets.WINGET_TOKEN != '' }}
+        if: ${{ env.WINGET_TOKEN != '' }}
         uses: vedantmgoyal9/winget-releaser@v2
         with:
           identifier: PingRank.PingRank
           release-tag: ${{ github.ref_name }}
           installers-regex: '\.msi$'
-          token: ${{ secrets.WINGET_TOKEN }}
+          token: ${{ env.WINGET_TOKEN }}
