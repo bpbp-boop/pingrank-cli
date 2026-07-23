@@ -13,6 +13,9 @@
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
     <Icon Id="PingRankIcon.ico" SourceFile="$(var.SourceDir)\pingrank.ico" />
     <Property Id="ARPPRODUCTICON" Value="PingRankIcon.ico" />
+    <Property
+        Id="WIXUI_EXITDIALOGOPTIONALTEXT"
+        Value="PingRank.gg installed successfully. The app is now running. Look for the PingRank.gg icon in the taskbar notification area, or open PingRank.gg from the Start menu." />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="PingRank">
@@ -80,5 +83,24 @@
     <InstallExecuteSequence>
       <Custom Action="LaunchTray" After="InstallFinalize" Condition="NOT Installed AND UILevel &gt;= 3" />
     </InstallExecuteSequence>
+
+    <!-- Keep setup to one step, then show a clear result. The WiX dialog
+         library also supplies progress, error, and cancelled screens. -->
+    <UI>
+      <TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="8" />
+      <TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="12" />
+      <TextStyle Id="WixUI_Font_Title" FaceName="Tahoma" Size="9" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+
+      <DialogRef Id="ErrorDlg" />
+      <DialogRef Id="FatalError" />
+      <DialogRef Id="FilesInUse" />
+      <DialogRef Id="MsiRMFilesInUse" />
+      <DialogRef Id="ProgressDlg" />
+      <DialogRef Id="UserExit" />
+
+      <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />
+    </UI>
+    <UIRef Id="WixUI_Common" />
   </Package>
 </Wix>

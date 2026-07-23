@@ -10,6 +10,8 @@ The WiX source installs three static x64 binaries and the website icon under
 
 Interactive installs launch the tray immediately. Silent installs leave it for
 the next user sign-in so no GUI process is accidentally started in session 0.
+Interactive installs end with a success screen. It points to the tray icon and
+the Start menu entry.
 
 The service stores its identity, status, access-path cache, and sessions under
 `%ProgramData%\PingRank`. Uninstall removes installed binaries, the service,
@@ -23,7 +25,8 @@ New-Item -ItemType Directory -Force dist
 go build -trimpath -o dist\pingrank.exe .\cmd\pingrank
 go build -trimpath -o dist\pingrank-service.exe .\cmd\pingrank-service
 go build -trimpath -ldflags "-H windowsgui" -o dist\pingrank-tray.exe .\cmd\pingrank-tray
-wix build packaging\pingrank.wxs -arch x64 -d SourceDir=dist -d Version=0.7.0 -pdbtype none -out dist\pingrank.gg-0.7.0-x64.msi
+wix extension add -g WixToolset.UI.wixext/6.0.2
+wix build packaging\pingrank.wxs -ext WixToolset.UI.wixext -arch x64 -d SourceDir=dist -d Version=0.7.0 -pdbtype none -out dist\pingrank.gg-0.7.0-x64.msi
 ```
 
 The release workflow stamps all three binaries with the tag version and builds

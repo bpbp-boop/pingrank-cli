@@ -29,7 +29,9 @@ jobs:
 
       - name: Install WiX
         shell: pwsh
-        run: dotnet tool install --global wix --version 6.0.2
+        run: |
+          dotnet tool install --global wix --version 6.0.2
+          wix extension add -g WixToolset.UI.wixext/6.0.2
 
       - name: Test
         shell: pwsh
@@ -52,7 +54,7 @@ jobs:
           go build -trimpath -ldflags "-s -w -X main.clientVersion=$version" -o dist/pingrank-service.exe ./cmd/pingrank-service
           go build -trimpath -ldflags "-s -w -H windowsgui" -o dist/pingrank-tray.exe ./cmd/pingrank-tray
           Copy-Item packaging/pingrank.ico dist/pingrank.ico
-          wix build packaging/pingrank.wxs -arch x64 -d SourceDir=dist -d Version=$version -pdbtype none -out "dist/pingrank.gg-$version-x64.msi"
+          wix build packaging/pingrank.wxs -ext WixToolset.UI.wixext -arch x64 -d SourceDir=dist -d Version=$version -pdbtype none -out "dist/pingrank.gg-$version-x64.msi"
           Get-ChildItem dist -File | ForEach-Object {
             $hash = (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant()
             "$hash  $($_.Name)"
