@@ -77,7 +77,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $runUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          $generatedNotes = gh api --method POST "repos/$env:GITHUB_REPOSITORY/releases/generate-notes" `
+            -f "tag_name=$env:GITHUB_REF_NAME" --jq .body
           @(
+            $generatedNotes
+            ""
+            "## Build details"
+            ""
             "Built from source by GitHub Actions: $runUrl"
             ""
             "Verify provenance with: gh attestation verify <file> --owner $env:GITHUB_REPOSITORY_OWNER"
