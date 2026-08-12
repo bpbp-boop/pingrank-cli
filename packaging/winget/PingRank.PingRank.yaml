@@ -1,7 +1,7 @@
-# Reference manifest for microsoft/winget-pkgs. Regenerate before the first
-# submission — see packaging/README.md.
+# Reference manifest for microsoft/winget-pkgs. Regenerate for each
+# submission. See packaging/README.md.
 PackageIdentifier: PingRank.PingRank
-PackageVersion: 0.7.6
+PackageVersion: 0.7.12
 DefaultLocale: en-US
 ManifestType: version
 ManifestVersion: 1.12.0

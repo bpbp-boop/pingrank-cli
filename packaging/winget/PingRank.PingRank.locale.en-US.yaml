@@ -1,7 +1,7 @@
-# Reference manifest for microsoft/winget-pkgs. Regenerate before the first
-# submission — see packaging/README.md.
+# Reference manifest for microsoft/winget-pkgs. Regenerate for each
+# submission. See packaging/README.md.
 PackageIdentifier: PingRank.PingRank
-PackageVersion: 0.7.6
+PackageVersion: 0.7.12
 PackageLocale: en-US
 Publisher: PingRank.gg
 PublisherUrl: https://pingrank.gg
@@ -22,6 +22,6 @@ Tags:
   - latency
   - network
   - ping
-ReleaseNotesUrl: https://github.com/bpbp-boop/pingrank-cli/releases/tag/v0.7.6
+ReleaseNotesUrl: https://github.com/bpbp-boop/pingrank-cli/releases/tag/v0.7.12
 ManifestType: defaultLocale
 ManifestVersion: 1.12.0

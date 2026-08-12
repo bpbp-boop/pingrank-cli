@@ -36,7 +36,7 @@ the MSI on a Windows runner.
 
 `winget/` holds manifests for the community repository
 ([microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs)) under
-the identifier `PingRank.PingRank`. They match the v0.7.6 release exactly;
+the identifier `PingRank.PingRank`. They match the v0.7.12 release exactly;
 the hash and ProductCode come from the released MSI. Both change with every
 build, so for any later version regenerate with `wingetcreate new
 <msi-url>` instead of editing by hand.
