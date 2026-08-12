@@ -17,6 +17,16 @@ import (
 	"pingrank.gg/internal/session"
 )
 
+// DefaultServerURL is the production ingest endpoint.
+const DefaultServerURL = "https://ingest.pingrank.gg"
+
+// Result reports where the server stored a verified recording.
+type Result struct {
+	Duplicate bool
+	Region    string
+	City      string
+}
+
 type liveStart struct {
 	AgentID       string `json:"agentId"`
 	PublicKey     string `json:"publicKey"`

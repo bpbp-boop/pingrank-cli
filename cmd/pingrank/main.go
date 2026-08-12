@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net/netip"
 	"os"
 	"os/signal"
@@ -32,6 +33,7 @@ type options struct {
 	watch   bool
 	gameExe string
 	noEtw   bool
+	version bool
 }
 
 // report is the full output of one measurement cycle.
@@ -68,8 +70,6 @@ func main() {
 			os.Exit(cmdSessions(os.Args[2:]))
 		case "show":
 			os.Exit(cmdShow(os.Args[2:]))
-		case "submit":
-			os.Exit(cmdSubmit(os.Args[2:]))
 		case "access":
 			os.Exit(cmdAccess(os.Args[2:]))
 		case "parse-log":
@@ -81,11 +81,12 @@ func main() {
 	}
 
 	var opts options
-	flag.BoolVar(&opts.jsonOut, "json", false, "emit structured JSON instead of a human-readable report")
-	flag.BoolVar(&opts.watch, "watch", false, "keep running; re-report when the endpoint set changes")
-	flag.StringVar(&opts.gameExe, "game", "", "skip signature matching and target this exe name (e.g. cs2.exe)")
-	flag.BoolVar(&opts.noEtw, "no-etw", false, "skip the ETW observer: socket-table-only discovery (degraded)")
+	registerFlags(flag.CommandLine, &opts)
 	flag.Parse()
+	if opts.version {
+		printVersion(os.Stdout)
+		return
+	}
 
 	if err := run(opts); err != nil {
 		if err.Error() != "" {
@@ -95,21 +96,33 @@ func main() {
 	}
 }
 
+func registerFlags(fs *flag.FlagSet, opts *options) {
+	fs.BoolVar(&opts.jsonOut, "json", false, "emit structured JSON instead of a human-readable report")
+	fs.BoolVar(&opts.watch, "watch", false, "keep running; re-report when the endpoint set changes")
+	fs.StringVar(&opts.gameExe, "game", "", "skip signature matching and target this exe name (e.g. cs2.exe)")
+	fs.BoolVar(&opts.noEtw, "no-etw", false, "skip the ETW observer: socket-table-only discovery (degraded)")
+	fs.BoolVar(&opts.version, "version", false, "print the app version and exit")
+	fs.BoolVar(&opts.version, "v", false, "print the app version and exit")
+}
+
+func printVersion(w io.Writer) {
+	fmt.Fprintln(w, "pingrank", clientVersion)
+}
+
 func printUsage() {
 	fmt.Fprintln(os.Stderr, `usage:
   pingrank [flags]            single-shot: detect game, find server, measure once
   pingrank record [flags]     record a whole gaming session (M2); stores it locally
   pingrank sessions [flags]   list stored sessions
   pingrank show <session>     re-render a stored session
-  pingrank submit <session>   share a stored session with the ingest backend (opt-in)
   pingrank access             test and explain the current Internet access path
   pingrank parse-log [file]   extract server endpoints from a game log
+  pingrank --version          print the app version (-v also works)
 
-single-shot flags: -json -watch -game <exe> -no-etw
+single-shot flags: -json -watch -game <exe> -no-etw -version (-v)
 record flags:      -json -game <exe> -interval <dur> -for <dur> -dir <dir> -no-etw
                    -no-share (local only) -server <url>
 sessions/show:     -dir <dir>; show also takes -json
-submit flags:      -dry-run (print exact payload, send nothing) -flush -server <url> -dir <dir>
 parse-log flags:   -game <id> (default rocketleague) -json
 
 recordings are shared by default; use 'record -no-share' for local-only mode.`)

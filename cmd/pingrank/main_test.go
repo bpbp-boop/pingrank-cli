@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"flag"
+	"fmt"
 	"net/netip"
 	"testing"
 
@@ -8,6 +11,31 @@ import (
 	"pingrank.gg/internal/flows"
 	"pingrank.gg/internal/probe"
 )
+
+func TestVersionFlags(t *testing.T) {
+	for _, arg := range []string{"--version", "-v"} {
+		t.Run(arg, func(t *testing.T) {
+			fs := flag.NewFlagSet("pingrank", flag.ContinueOnError)
+			var opts options
+			registerFlags(fs, &opts)
+			if err := fs.Parse([]string{arg}); err != nil {
+				t.Fatal(err)
+			}
+			if !opts.version {
+				t.Fatalf("%s did not set the version option", arg)
+			}
+		})
+	}
+}
+
+func TestPrintVersion(t *testing.T) {
+	var out bytes.Buffer
+	printVersion(&out)
+	got := out.String()
+	if want := fmt.Sprintf("pingrank %s\n", clientVersion); got != want {
+		t.Fatalf("printVersion() = %q, want %q", got, want)
+	}
+}
 
 type fakeEndpointProber struct {
 	protocol probe.Stats

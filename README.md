@@ -51,10 +51,6 @@ pingrank record       record a whole session: waits for a game, samples its
   -game <exe>           as above
 pingrank sessions     list stored sessions (game, duration, p50, loss)
 pingrank show <name>  print a stored session (-json for the raw records)
-pingrank submit <name> send one stored session to pingrank.gg
-  -dry-run              print what would be sent; send nothing
-  -flush                retry queued submissions only
-  -server <url>         use a different server
 pingrank access       test how your connection reaches the internet
                       (CGNAT, NAT64, DS-Lite, native, …)
   -refresh              run the tests again now
@@ -91,12 +87,11 @@ Nothing, until a recording is shared. A shared recording contains:
 - a random installation ID, made on your machine.
 
 It contains no account, no MAC address, and no hardware ID.
-`pingrank submit -dry-run` shows the exact bytes before anything is sent.
 The server uses your IP address once, to find your ISP, then discards it.
 The full inventory is at [pingrank.gg/privacy](https://pingrank.gg/privacy).
 
-If an upload fails, the tool stores it and tries again later. A failed
-upload never interrupts a recording.
+If sharing fails, the recording stays on your machine. A failed share never
+interrupts a recording.
 
 ## Safe with anti-cheat
 

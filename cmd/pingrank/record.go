@@ -24,7 +24,7 @@ import (
 
 // clientVersion is stamped by the release workflow via
 // -ldflags "-X main.clientVersion=<tag>"; dev builds keep this default.
-var clientVersion = "0.7.5-dev"
+var clientVersion = "0.7.12-dev"
 
 // etwAdapter bridges *etw.Session to session.FlowSource.
 type etwAdapter struct{ s *etw.Session }
@@ -64,6 +64,18 @@ func resolveStoreDir(flagValue string) (string, error) {
 		return flagValue, nil
 	}
 	return store.DefaultDir()
+}
+
+// resolveServer picks the ingest URL: -server flag, then PINGRANK_SERVER,
+// then the production default.
+func resolveServer(flagValue string) string {
+	if flagValue != "" {
+		return flagValue
+	}
+	if env := os.Getenv("PINGRANK_SERVER"); env != "" {
+		return env
+	}
+	return submit.DefaultServerURL
 }
 
 // cmdRecord implements `pingrank record`: run until Ctrl+C, game exit, or
@@ -226,24 +238,10 @@ func cmdRecord(args []string) int {
 			}
 			fmt.Fprintf(statusOut, "submitted verified: %s%s\n", sum.GameID, where)
 		} else {
-			fmt.Fprintf(statusOut, "live verification unavailable (%v); submitting as unverified\n", liveErr)
-			shareSession(sum, resolveServer(*server), statusOut)
+			fmt.Fprintf(statusOut, "recording was not shared: %v\n", liveErr)
 		}
 	}
 	return 0
-}
-
-// shareSession implements `record -share`: flush earlier queued payloads,
-// then submit this session, queueing it if the backend is unreachable.
-// Never fails the record command — the session is already stored locally.
-func shareSession(sum session.Summary, url string, out io.Writer) {
-	payload := submit.Build(sum, clientVersion)
-	if len(payload.Session.Segments) == 0 {
-		fmt.Fprintln(out, "share: session has no segments; nothing to submit")
-		return
-	}
-	flushOutbox(url, out)
-	deliver(url, payload, payload.Session.GameID, out)
 }
 
 // cmdSessions implements `pingrank sessions`: list stored sessions.

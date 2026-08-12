@@ -17,7 +17,7 @@ import (
 
 const serviceName = "PingRank"
 
-var clientVersion = "0.7.5-dev"
+var clientVersion = "0.7.12-dev"
 
 func main() {
 	dataDir, err := agent.DefaultDataDir()
