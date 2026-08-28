@@ -126,9 +126,10 @@ Windows amd64. One static binary. No cgo.
 
 ## Releases
 
-GitHub Actions builds every tagged release from this source
-([release.yml](.github/workflows/release.yml)) — never a developer
-machine. To check that a download came from this source:
+GitHub Actions builds and signs every tagged release from this source
+([release.yml](.github/workflows/release.yml)). Windows must show the publisher
+as `Open Source Developer Boden Phillip Garman`. To check that a download came
+from this source:
 
 ```
 gh attestation verify pingrank.exe --owner bpbp-boop

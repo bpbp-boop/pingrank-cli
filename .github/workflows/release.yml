@@ -1,27 +1,82 @@
-# Builds the Windows CLI, service, tray companion, and WiX MSI on every v* tag,
-# with checksums and GitHub build-provenance attestations.
+# Builds, Authenticode-signs, and publishes the Windows CLI, service, tray
+# companion, and WiX MSI on every v* tag. A manual run signs and uploads a test
+# artifact without creating a release.
 name: release
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to stamp into a test build, such as 0.8.0
+        required: true
+        type: string
 
 permissions:
   contents: write
   id-token: write
   attestations: write
 
+env:
+  RELEASE_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+
 jobs:
-  release:
+  build:
     runs-on: windows-latest
-    env:
-      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+
+      - name: Test
+        shell: pwsh
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: go test ./...
+
+      - name: Build executables
+        shell: pwsh
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: |
+          $version = $env:RELEASE_VERSION.TrimStart('v')
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Version must have three numeric parts: $version"
+          }
+          New-Item -ItemType Directory -Force dist | Out-Null
+          go build -trimpath -ldflags "-s -w -X main.clientVersion=$version" -o dist/pingrank.exe ./cmd/pingrank
+          go build -trimpath -ldflags "-s -w -X main.clientVersion=$version" -o dist/pingrank-service.exe ./cmd/pingrank-service
+          go build -trimpath -ldflags "-s -w -H windowsgui" -o dist/pingrank-tray.exe ./cmd/pingrank-tray
+          Copy-Item packaging/pingrank.ico dist/pingrank.ico
+
+      - name: Upload unsigned build
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-windows
+          path: dist/
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: windows-latest
+    environment: code-signing
+    env:
+      CERTUM_KEY_ID: 2D9973F2187731CEEC973E9FCA542B73ACFE81F5
+      CERTUM_TIMESTAMP_URL: http://time.certum.pl
+      SIMPLYSIGN_URL: https://files.certum.eu/software/SimplySignDesktop/Windows/9.4.3.90/SimplySignDesktop-9.4.3.90-64-bit-en.msi
+      SIMPLYSIGN_SHA256: ce2b38ef0124a574bc08e5558726099caac79a7c58b8d3d712f629371fe1bcb7
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -33,33 +88,144 @@ jobs:
           dotnet tool install --global wix --version 6.0.2
           wix extension add -g WixToolset.UI.wixext/6.0.2
 
-      - name: Test
-        shell: pwsh
-        env:
-          GOOS: windows
-          GOARCH: amd64
-          CGO_ENABLED: "0"
-        run: go test ./...
+      - name: Download unsigned build
+        uses: actions/download-artifact@v4
+        with:
+          name: unsigned-windows
+          path: dist
 
-      - name: Build binaries and MSI
+      - name: Check signing configuration
         shell: pwsh
         env:
-          GOOS: windows
-          GOARCH: amd64
-          CGO_ENABLED: "0"
+          CERTUM_USERNAME: ${{ secrets.CERTUM_USERNAME }}
+          CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
         run: |
-          $version = $env:GITHUB_REF_NAME.TrimStart('v')
-          New-Item -ItemType Directory -Force dist | Out-Null
-          go build -trimpath -ldflags "-s -w -X main.clientVersion=$version" -o dist/pingrank.exe ./cmd/pingrank
-          go build -trimpath -ldflags "-s -w -X main.clientVersion=$version" -o dist/pingrank-service.exe ./cmd/pingrank-service
-          go build -trimpath -ldflags "-s -w -H windowsgui" -o dist/pingrank-tray.exe ./cmd/pingrank-tray
-          Copy-Item packaging/pingrank.ico dist/pingrank.ico
-          wix build packaging/pingrank.wxs -ext WixToolset.UI.wixext -arch x64 -d SourceDir=dist -d Version=$version -pdbtype none -out "dist/pingrank.gg-$version-x64.msi"
-          Get-ChildItem dist -File | ForEach-Object {
+          if ([string]::IsNullOrWhiteSpace($env:CERTUM_USERNAME)) {
+            throw 'The code-signing environment has no CERTUM_USERNAME secret.'
+          }
+          if ($env:CERTUM_OTP_URI -notlike 'otpauth://*') {
+            throw 'The code-signing environment has no valid CERTUM_OTP_URI secret.'
+          }
+
+      - name: Download verified SimplySign Desktop
+        shell: pwsh
+        run: |
+          curl.exe --fail --location --retry 3 --output SimplySignDesktop.msi $env:SIMPLYSIGN_URL
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Could not download SimplySign Desktop.'
+          }
+          $actual = (Get-FileHash -Algorithm SHA256 SimplySignDesktop.msi).Hash.ToLowerInvariant()
+          if ($actual -ne $env:SIMPLYSIGN_SHA256) {
+            throw "SimplySign Desktop checksum mismatch: $actual"
+          }
+
+      # Pinned because this action receives the SimplySign account name and
+      # TOTP seed. It logs in through SimplySign Desktop and checks that the
+      # expected certificate appears in the Windows certificate store.
+      - name: Open SimplySign signing session
+        uses: dismine/windows-app-signing-setup-action@89ae3b032d4bc7a5b98d1a42a34e61ecb6faad64
+        with:
+          certum-username: ${{ secrets.CERTUM_USERNAME }}
+          certum-otp-uri: ${{ secrets.CERTUM_OTP_URI }}
+          certum-key-id: ${{ env.CERTUM_KEY_ID }}
+          simplysign-url: ${{ env.SIMPLYSIGN_URL }}
+          capture-diagnostics: "false"
+
+      - name: Find SignTool
+        shell: pwsh
+        run: |
+          $signTool = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin' -Filter signtool.exe -Recurse |
+            Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (-not $signTool) {
+            throw 'SignTool was not found on the Windows runner.'
+          }
+          "SIGNTOOL_PATH=$($signTool.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Sign executables
+        shell: pwsh
+        run: |
+          $files = @(
+            'dist/pingrank.exe',
+            'dist/pingrank-service.exe',
+            'dist/pingrank-tray.exe'
+          )
+          foreach ($file in $files) {
+            & $env:SIGNTOOL_PATH sign /v /sha1 $env:CERTUM_KEY_ID /fd SHA256 `
+              /tr $env:CERTUM_TIMESTAMP_URL /td SHA256 /d 'PingRank.gg' `
+              /du 'https://pingrank.gg/' $file
+            if ($LASTEXITCODE -ne 0) {
+              throw "SignTool failed for $file."
+            }
+          }
+
+      - name: Build MSI from signed executables
+        shell: pwsh
+        run: |
+          $version = $env:RELEASE_VERSION.TrimStart('v')
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Version must have three numeric parts: $version"
+          }
+          wix build packaging/pingrank.wxs -ext WixToolset.UI.wixext -arch x64 `
+            -d SourceDir=dist -d Version=$version -pdbtype none `
+            -out "dist/pingrank.gg-$version-x64.msi"
+
+      - name: Sign MSI
+        shell: pwsh
+        run: |
+          $version = $env:RELEASE_VERSION.TrimStart('v')
+          $installer = "dist/pingrank.gg-$version-x64.msi"
+          & $env:SIGNTOOL_PATH sign /v /sha1 $env:CERTUM_KEY_ID /fd SHA256 `
+            /tr $env:CERTUM_TIMESTAMP_URL /td SHA256 /d 'PingRank.gg' `
+            /du 'https://pingrank.gg/' $installer
+          if ($LASTEXITCODE -ne 0) {
+            throw "SignTool failed for $installer."
+          }
+
+      - name: Verify Authenticode signatures
+        shell: pwsh
+        run: |
+          $files = @(
+            'dist/pingrank.exe',
+            'dist/pingrank-service.exe',
+            'dist/pingrank-tray.exe',
+            (Get-ChildItem dist -Filter '*.msi' -File).FullName
+          )
+          foreach ($file in $files) {
+            & $env:SIGNTOOL_PATH verify /pa /all /v $file
+            if ($LASTEXITCODE -ne 0) {
+              throw "Authenticode verification failed for $file."
+            }
+            $signature = Get-AuthenticodeSignature $file
+            if ($signature.SignerCertificate.Thumbprint -ne $env:CERTUM_KEY_ID) {
+              throw "Unexpected signing certificate on $file."
+            }
+          }
+
+      - name: Write checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem dist -File | Sort-Object Name | ForEach-Object {
             $hash = (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant()
             "$hash  $($_.Name)"
           } | Set-Content -Encoding ascii dist/checksums.txt
           Get-Content dist/checksums.txt
+
+      - name: Close SimplySign signing session
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          Get-Process -Name '*SimplySign*' -ErrorAction SilentlyContinue |
+            Stop-Process -Force -ErrorAction SilentlyContinue
+          Remove-Item "Cert:\CurrentUser\My\$env:CERTUM_KEY_ID" -Force -ErrorAction SilentlyContinue
+          Remove-Item SimplySignDesktop.msi -Force -ErrorAction SilentlyContinue
+
+      - name: Upload signed build
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-windows
+          path: dist/
 
       - name: Attest executable provenance
         uses: actions/attest-build-provenance@v2
@@ -72,6 +238,7 @@ jobs:
           subject-path: dist/*.msi
 
       - name: Create release
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -84,6 +251,7 @@ jobs:
             ""
             "## Build details"
             ""
+            "Windows files carry an Authenticode signature from Open Source Developer Boden Phillip Garman."
             "Built from source by GitHub Actions: $runUrl"
             ""
             "Verify provenance with: gh attestation verify <file> --owner $env:GITHUB_REPOSITORY_OWNER"
@@ -98,7 +266,7 @@ jobs:
       # variable WINGET_ENABLED to true after the first manual submission is
       # merged. See packaging/README.md.
       - name: Submit to winget
-        if: ${{ vars.WINGET_ENABLED == 'true' && env.WINGET_TOKEN != '' }}
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && vars.WINGET_ENABLED == 'true' && env.WINGET_TOKEN != '' }}
         uses: vedantmgoyal9/winget-releaser@v2
         with:
           identifier: PingRank.PingRank

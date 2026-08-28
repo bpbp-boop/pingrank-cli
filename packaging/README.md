@@ -29,8 +29,47 @@ wix extension add -g WixToolset.UI.wixext/6.0.2
 wix build packaging\pingrank.wxs -ext WixToolset.UI.wixext -arch x64 -d SourceDir=dist -d Version=0.7.0 -pdbtype none -out dist\pingrank.gg-0.7.0-x64.msi
 ```
 
-The release workflow stamps all three binaries with the tag version and builds
-the MSI on a Windows runner.
+The release workflow stamps and signs all three binaries. It then builds and
+signs the MSI on a Windows runner. A manual run makes the same signed files but
+does not publish a release.
+
+## Code signing
+
+The release workflow uses the Certum SimplySign cloud certificate for this
+publisher:
+
+```text
+Open Source Developer Boden Phillip Garman
+```
+
+The workflow checks for certificate thumbprint
+`2D9973F2187731CEEC973E9FCA542B73ACFE81F5`. It signs each file with SHA-256 and
+uses Certum's time stamp service. It stops SimplySign before it uploads or
+publishes files.
+
+Configure the public GitHub mirror before the first signed run:
+
+1. Create an environment named `code-signing`.
+2. Add a required reviewer. This makes each signing run wait for approval.
+3. Add the environment secret `CERTUM_USERNAME`. Set it to the SimplySign
+   account name.
+4. Add the environment secret `CERTUM_OTP_URI`. Set it to the full
+   `otpauth://` value from the SimplySign activation QR code.
+
+The OTP URI contains the seed that generates each login code. It grants access
+to signing. Keep it secret. Do not put it in a repository secret, file, command,
+issue, or log. If the activation QR code is no longer available, use Certum's
+regain-access process to get a new QR code. Store its `otpauth://` value in a
+password manager and in the protected GitHub environment.
+
+The workflow names one fixed SimplySign helper commit. It also checks the
+SHA-256 of the SimplySign Desktop installer before it runs the installer. Review
+and update both values when Certum requires a new desktop version.
+
+Run the workflow by hand once before the next release. Enter the next version
+without a leading `v`. Download the `signed-windows` artifact and check the
+Digital Signatures tab on the three EXEs and the MSI. Windows must show the
+publisher above and a valid time stamp.
 
 ## winget
 
