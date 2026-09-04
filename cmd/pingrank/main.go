@@ -267,6 +267,7 @@ func runOnce(opts options, sigs []detect.Signature, lister detect.Lister,
 			protocolMethod = h.ProbeMethod
 		}
 		if parsed, err := flows.ParseHints(h.ExpectedPorts, h.RelayCIDRs, h.RelayLabel); err == nil {
+			parsed.GameID = game.GameID
 			hints = &parsed
 		}
 	}

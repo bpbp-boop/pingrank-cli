@@ -387,6 +387,7 @@ func (r *Recorder) matchGame(procs []detect.Process) *game {
 	g := &game{id: m.Signature.GameID, display: m.Signature.DisplayName, pids: pidSet(m.PIDs)}
 	h := m.Signature.Hints
 	if parsed, err := flows.ParseHints(h.ExpectedPorts, h.RelayCIDRs, h.RelayLabel); err == nil {
+		parsed.GameID = g.id
 		g.hints = &parsed
 		if probe.GameProtocolAllowed(g.id, h.ProbeMethod) {
 			g.probeMethod = h.ProbeMethod
@@ -522,6 +523,16 @@ func trafficEvidence(c flows.Candidate, observedFor time.Duration) *TrafficEvide
 
 func classifySegment(seg *segment, g *game, logs map[netip.AddrPort]gamelog.Candidate) {
 	seg.role, seg.corroboratedBy = "unknown", ""
+	if g.id == "valorant" {
+		seg.role = flows.ValorantRole(string(seg.cand.Proto), seg.cand.Remote.Port())
+		seg.eligibility, seg.eligibilityReason = EligibilityDiagnostic, "valorant_"+seg.role+"_diagnostic"
+		t := seg.traffic
+		if seg.role == "game" && seg.cand.Source == flows.SourceETW && t != nil &&
+			t.Bidirectional && t.SentPackets > 0 && t.RecvPackets > 0 && t.PacketsPerSecond >= 5 {
+			seg.eligibility, seg.eligibilityReason = EligibilityProbable, "valorant_expected_udp_with_traffic"
+		}
+		return
+	}
 	if found, ok := logs[seg.cand.Remote]; ok {
 		seg.role, seg.corroboratedBy = found.Role, found.Source
 		seg.eligibility, seg.eligibilityReason = EligibilityConfirmed, "game_log_"+found.Role

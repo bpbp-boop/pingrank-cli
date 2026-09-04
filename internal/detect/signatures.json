@@ -2,7 +2,10 @@
   {
     "gameId": "valorant",
     "displayName": "Valorant",
-    "exeNames": ["VALORANT-Win64-Shipping.exe"]
+    "exeNames": ["VALORANT-Win64-Shipping.exe"],
+    "hints": {
+      "expectedPorts": ["7000-8000", "8180-8181"]
+    }
   },
   {
     "gameId": "cs2",

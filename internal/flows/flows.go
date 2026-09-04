@@ -81,6 +81,7 @@ type Candidate struct {
 // GameHints is per-game knowledge (parsed from a detect signature) that
 // sharpens ranking. Zero value changes nothing.
 type GameHints struct {
+	GameID     string
 	PortRanges []PortRange
 	RelayNets  []netip.Prefix
 	RelayLabel string
@@ -333,6 +334,15 @@ func (c *Collector) rank(key trackKey, t *track) Candidate {
 		cand.Confidence = ConfidenceMedium
 	default:
 		cand.Confidence = ConfidenceLow
+	}
+	if c.hints != nil && c.hints.GameID == "valorant" {
+		if ValorantRole(string(key.proto), key.remote.Port()) == "game" {
+			cand.score += 200
+		} else {
+			cand.score -= 200
+			cand.Confidence = ConfidenceLow
+			cand.Reasons = append(cand.Reasons, "outside Valorant game UDP ports; diagnostic only")
+		}
 	}
 	return cand
 }
