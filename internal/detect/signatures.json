@@ -131,5 +131,25 @@
     "gameId": "battlefield6",
     "displayName": "Battlefield 6",
     "exeNames": ["bf6.exe"]
+  },
+  {
+    "gameId": "rust",
+    "displayName": "Rust",
+    "exeNames": ["RustClient.exe"]
+  },
+  {
+    "gameId": "eafc",
+    "displayName": "EA Sports FC",
+    "exeNames": ["FC26.exe", "FC25.exe"]
+  },
+  {
+    "gameId": "wardogs",
+    "displayName": "WARDOGS",
+    "exeNames": ["WardogsClient-Win64-Shipping.exe"]
+  },
+  {
+    "gameId": "poe",
+    "displayName": "Path of Exile",
+    "exeNames": ["PathOfExile.exe", "PathOfExileSteam.exe", "PathOfExile_x64.exe", "PathOfExile_x64Steam.exe"]
   }
 ]
