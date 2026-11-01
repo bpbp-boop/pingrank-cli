@@ -18,6 +18,7 @@ import (
 
 	"pingrank.gg/internal/agent"
 	"pingrank.gg/internal/identity"
+	"pingrank.gg/internal/update"
 )
 
 const (
@@ -41,12 +42,14 @@ const (
 	lrDefaultSize   = 0x00000040
 	mfString        = 0x00000000
 	mfGray          = 0x00000001
+	mfChecked       = 0x00000008
 	mfSeparator     = 0x00000800
 	tpmRightButton  = 0x0002
 	swShowNormal    = 1
 	menuOpen        = 1001
 	menuExit        = 1002
 	menuWebSessions = 1003
+	menuAutoUpdate  = 1004
 
 	// websiteURL is the public site; the tray opens it in the default browser
 	// via the shell, so the tray binary itself still performs no network I/O.
@@ -261,6 +264,8 @@ func windowProc(hwnd, rawMsg, wParam, lParam uintptr) uintptr {
 			openSessions(hwnd)
 		case menuWebSessions:
 			openWebSessions(hwnd)
+		case menuAutoUpdate:
+			toggleAutoUpdate(hwnd)
 		case menuExit:
 			if stopService() {
 				setTrayDisabled(true)
@@ -282,6 +287,13 @@ func windowProc(hwnd, rawMsg, wParam, lParam uintptr) uintptr {
 
 func refreshStatus(hwnd uintptr) {
 	status, err := agent.ReadStatus(agent.StatusPath(trayDataDir))
+	if err == nil && status.State == agent.StateUpdating && time.Since(status.UpdatedAt) < 10*time.Minute {
+		// Windows Installer is about to replace this program. Close now;
+		// the service starts the tray again when the update is done.
+		trayLog("closing for an update")
+		procPostQuitMessage.Call(0)
+		return
+	}
 	if err != nil {
 		trayStatus = "PingRank.gg service status unavailable"
 	} else {
@@ -316,6 +328,11 @@ func showMenu(hwnd uintptr) {
 	} else {
 		appendMenu(menu, mfString|mfGray, 0, "View my sessions (no uploads yet)")
 	}
+	autoUpdate := uint32(mfString)
+	if update.Enabled() {
+		autoUpdate |= mfChecked
+	}
+	appendMenu(menu, autoUpdate, menuAutoUpdate, "Install updates automatically")
 	appendMenu(menu, mfString, menuOpen, "Open PingRank.gg logs")
 	appendMenu(menu, mfString, menuExit, "Exit PingRank.gg (stop service)")
 	var cursor point
@@ -470,9 +487,30 @@ func runElevatedServiceCommand(command string) bool {
 	if systemRoot == "" {
 		return false
 	}
+	return runElevated(filepath.Join(systemRoot, "System32", "sc.exe"), command+" PingRank")
+}
+
+// toggleAutoUpdate flips the machine-wide update setting. The setting
+// lives in HKLM, so Windows asks for administrator approval.
+func toggleAutoUpdate(hwnd uintptr) {
+	exe, err := os.Executable()
+	if err != nil {
+		return
+	}
+	want := "on"
+	if update.Enabled() {
+		want = "off"
+	}
+	if !runElevated(filepath.Join(filepath.Dir(exe), "pingrank.exe"), "updates "+want) {
+		trayStatus = "PingRank.gg: update setting unchanged"
+		notifyIcon(nimModify, hwnd, trayIcon, trayStatus)
+	}
+}
+
+func runElevated(path, params string) bool {
 	verb, _ := windows.UTF16PtrFromString("runas")
-	file, _ := windows.UTF16PtrFromString(filepath.Join(systemRoot, "System32", "sc.exe"))
-	parameters, _ := windows.UTF16PtrFromString(command + " PingRank")
+	file, _ := windows.UTF16PtrFromString(path)
+	parameters, _ := windows.UTF16PtrFromString(params)
 	info := shellExecuteInfo{
 		Size: uint32(unsafe.Sizeof(shellExecuteInfo{})), Mask: 0x00000040, // SEE_MASK_NOCLOSEPROCESS
 		Verb: verb, File: file, Parameters: parameters, Show: 0,

@@ -16,6 +16,9 @@ const (
 	StateRecording = "recording"
 	StateError     = "error"
 	StateStopped   = "stopped"
+	// StateUpdating tells the tray to close: Windows Installer is about to
+	// replace its files. The service starts it again afterwards.
+	StateUpdating = "updating"
 )
 
 // Status is the service-to-tray contract. It intentionally excludes player

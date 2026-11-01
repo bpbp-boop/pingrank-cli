@@ -74,6 +74,8 @@ func main() {
 			os.Exit(cmdAccess(os.Args[2:]))
 		case "parse-log":
 			os.Exit(cmdParseLog(os.Args[2:]))
+		case "updates":
+			os.Exit(cmdUpdates(os.Args[2:]))
 		case "help", "-h", "--help":
 			printUsage()
 			os.Exit(0)
@@ -117,6 +119,7 @@ func printUsage() {
   pingrank show <session>     re-render a stored session
   pingrank access             test and explain the current Internet access path
   pingrank parse-log [file]   extract server endpoints from a game log
+  pingrank updates [on|off]   show or change automatic updates (admin to change)
   pingrank --version          print the app version (-v also works)
 
 single-shot flags: -json -watch -game <exe> -no-etw -version (-v)

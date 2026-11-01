@@ -2,6 +2,19 @@
 
 Each release on GitHub uses its section from this file as its notes.
 
+## v0.8.0 (2026-11-01)
+
+- The app now updates itself. About every six hours the service asks
+  pingrank.gg for the newest version. When it finds one, it downloads the
+  installer from GitHub, checks the checksum and the signature, and installs
+  it between games. The tray icon closes during the update and comes back
+  after it.
+- To turn updates off, untick **Install updates automatically** in the tray
+  menu, or run `pingrank updates off` as administrator. `pingrank updates`
+  shows the current setting.
+- This version does not reach you by itself: install it by hand once. Later
+  versions arrive by themselves.
+
 ## v0.7.16 (2026-11-01)
 
 - Detects six more games: FiveM, Team Fortress 2, ARC Raiders, Dead by

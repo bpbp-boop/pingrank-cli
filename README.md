@@ -33,6 +33,16 @@ to do anything. Only if you run `pingrank` yourself in a terminal, run it
 **as administrator**: without that, Windows does not show UDP
 connections, and most games use UDP.
 
+## Updates
+
+The service asks pingrank.gg for the newest version about every six
+hours. When it finds one, it downloads the installer from GitHub, checks
+the checksum and the signature, and installs it between games. The tray
+icon closes during the update and comes back after it.
+
+To turn updates off, untick **Install updates automatically** in the tray
+menu, or run `pingrank updates off` as administrator.
+
 ## Usage
 
 ```
@@ -58,6 +68,8 @@ pingrank access       test how your connection reaches the internet
 pingrank parse-log    read match servers from a game's own log file
   -game <id>            log format (currently rocketleague)
   -json                 structured JSON
+pingrank updates      show whether automatic updates are on
+  on | off              change it (run as administrator)
 ```
 
 If no known game is running, `pingrank` lists candidate programs for
@@ -79,7 +91,9 @@ The [pingrank.gg FAQ](https://pingrank.gg/faq) explains each method.
 
 ## What leaves your machine
 
-Nothing, until a recording is shared. A shared recording contains:
+Apart from the update check, nothing leaves your machine until a
+recording is shared. The update check sends only the app version. A shared
+recording contains:
 
 - the ping stats for each server (latency, jitter, loss),
 - the game name and the app version,

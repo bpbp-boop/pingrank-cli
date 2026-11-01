@@ -113,3 +113,34 @@ Before distributing a public build:
   and seek compatibility review or allowlisting from anti-cheat vendors where
   they offer a channel. Describe results as compatibility testing, never as a
   guarantee that bans are impossible.
+
+## Automatic updates
+
+The service asks `https://ingest.pingrank.gg/v1/client/latest` for the
+newest release about every six hours. The server reads the latest GitHub
+release of this mirror and returns the MSI URL and the SHA-256 that GitHub
+lists for it. The service then:
+
+1. downloads the MSI into a new folder that only SYSTEM and administrators
+   can open,
+2. checks the SHA-256, the Authenticode signature, and the signer name
+   `Open Source Developer Boden Phillip Garman` (`update.SignerName`),
+3. waits until no game is being recorded,
+4. sets the tray status to `updating` (the tray closes itself), and runs
+   `msiexec /i … /qn /norestart`. The MSI stops the old service and starts
+   the new one, and the new service starts the tray again.
+
+Things to keep in mind when releasing:
+
+- **The signer name must not change.** A renewed certificate with the same
+  subject name keeps working. A new name stops every installed copy from
+  updating until players install by hand.
+- **To pause a bad release**, mark the previous release as "Latest" on
+  GitHub. The server picks this up within 15 minutes. Installed copies never
+  downgrade, so the players who already updated must install by hand.
+- Builds whose version is not plain `X.Y.Z` (dev builds) never update.
+- `HKLM\SOFTWARE\PingRank.gg\AutoUpdate = 0` (DWORD) turns updates off;
+  `pingrank updates off` and the tray menu set it.
+- Each attempt leaves `install.log` in `%SystemRoot%\SystemTemp` (or
+  `%SystemRoot%\Temp`) under `pingrank-update-*` for a week. The service
+  logs its side to `%ProgramData%\PingRank\update.log`.
