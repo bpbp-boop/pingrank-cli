@@ -2,6 +2,10 @@
 
 Each release on GitHub uses its section from this file as its notes.
 
+## v0.8.1 (2026-11-01)
+
+- No changes to the app. This release tests automatic updates from v0.8.0.
+
 ## v0.8.0 (2026-11-01)
 
 - The app now updates itself. About every six hours the service asks
