@@ -14,7 +14,7 @@
     "hints": {
       "expectedPorts": ["27015-27200"],
       "probeMethod": "a2s",
-      "relayCidrs": ["155.133.0.0/16", "162.254.192.0/21", "146.66.152.0/21", "185.25.180.0/22", "205.196.6.0/24"],
+      "relayCidrs": ["155.133.0.0/16", "162.254.192.0/21", "146.66.152.0/21", "185.25.180.0/22", "205.196.6.0/24", "103.10.124.0/23", "103.28.54.0/23", "45.121.184.0/22", "89.222.108.161/32", "89.222.108.162/32", "89.222.117.194/32", "89.222.117.200/32", "212.102.63.139/32", "212.102.63.140/32", "152.233.52.97/32", "152.233.52.98/32"],
       "relayLabel": "valve-sdr"
     }
   },
@@ -25,7 +25,7 @@
     "hints": {
       "expectedPorts": ["27015-28998"],
       "probeMethod": "a2s",
-      "relayCidrs": ["155.133.0.0/16", "162.254.192.0/21", "146.66.152.0/21", "185.25.180.0/22", "205.196.6.0/24"],
+      "relayCidrs": ["155.133.0.0/16", "162.254.192.0/21", "146.66.152.0/21", "185.25.180.0/22", "205.196.6.0/24", "103.10.124.0/23", "103.28.54.0/23", "45.121.184.0/22", "89.222.108.161/32", "89.222.108.162/32", "89.222.117.194/32", "89.222.117.200/32", "212.102.63.139/32", "212.102.63.140/32", "152.233.52.97/32", "152.233.52.98/32"],
       "relayLabel": "valve-sdr"
     }
   },
@@ -44,7 +44,7 @@
     "gameId": "rocketleague",
     "displayName": "Rocket League",
     "exeNames": ["RocketLeague.exe"],
-    "hints": { "expectedPorts": ["7000-9000"] }
+    "hints": { "expectedPorts": ["7000-9999"] }
   },
   {
     "gameId": "apex",
@@ -151,5 +151,50 @@
     "gameId": "poe",
     "displayName": "Path of Exile",
     "exeNames": ["PathOfExile.exe", "PathOfExileSteam.exe", "PathOfExile_x64.exe", "PathOfExile_x64Steam.exe"]
+  },
+  {
+    "gameId": "fivem",
+    "displayName": "FiveM",
+    "exeNames": ["FiveM_GTAProcess.exe", "FiveM_b1604_GTAProcess.exe", "FiveM_b2060_GTAProcess.exe", "FiveM_b2189_GTAProcess.exe", "FiveM_b2372_GTAProcess.exe", "FiveM_b2545_GTAProcess.exe", "FiveM_b2612_GTAProcess.exe", "FiveM_b2699_GTAProcess.exe", "FiveM_b2802_GTAProcess.exe", "FiveM_b2944_GTAProcess.exe", "FiveM_b3095_GTAProcess.exe", "FiveM_b3179_GTAProcess.exe", "FiveM_b3258_GTAProcess.exe", "FiveM_b3323_GTAProcess.exe", "FiveM_b3407_GTAProcess.exe", "FiveM_b3570_GTAProcess.exe", "FiveM_b3751_GTAProcess.exe", "FiveM_b3788_GTAProcess.exe", "FiveM_b3889_GTAProcess.exe"],
+    "hints": {
+      "expectedPorts": ["30120-30130"]
+    }
+  },
+  {
+    "gameId": "tf2",
+    "displayName": "Team Fortress 2",
+    "exeNames": ["tf_win64.exe", "tf.exe"],
+    "hints": {
+      "expectedPorts": ["27015-27200"],
+      "probeMethod": "a2s",
+      "relayCidrs": ["155.133.0.0/16", "162.254.192.0/21", "146.66.152.0/21", "185.25.180.0/22", "205.196.6.0/24", "103.10.124.0/23", "103.28.54.0/23", "45.121.184.0/22", "89.222.108.161/32", "89.222.108.162/32", "89.222.117.194/32", "89.222.117.200/32", "212.102.63.139/32", "212.102.63.140/32", "152.233.52.97/32", "152.233.52.98/32"],
+      "relayLabel": "valve-sdr"
+    }
+  },
+  {
+    "gameId": "arcraiders",
+    "displayName": "ARC Raiders",
+    "exeNames": ["PioneerGame.exe", "PioneerGame-Win64-Shipping.exe"]
+  },
+  {
+    "gameId": "deadbydaylight",
+    "displayName": "Dead by Daylight",
+    "exeNames": ["DeadByDaylight-Win64-Shipping.exe", "DeadByDaylight-EGS-Shipping.exe", "DeadByDaylight-WinGDK-Shipping.exe"],
+    "hints": {
+      "expectedPorts": ["7777-7820"]
+    }
+  },
+  {
+    "gameId": "dayz",
+    "displayName": "DayZ",
+    "exeNames": ["DayZ_x64.exe", "DayZ_BE.exe"],
+    "hints": {
+      "expectedPorts": ["2302-2400"]
+    }
+  },
+  {
+    "gameId": "deltaforce",
+    "displayName": "Delta Force",
+    "exeNames": ["DeltaForceClient-Win64-Shipping.exe"]
   }
 ]

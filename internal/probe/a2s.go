@@ -25,7 +25,7 @@ const maxProtocolProbeBurst = 5
 // active traffic for another game or protocol requires an explicit code review.
 func GameProtocolAllowed(gameID, method string) bool {
 	switch gameID {
-	case "cs2", "dota2":
+	case "cs2", "dota2", "tf2":
 		return method == "a2s"
 	default:
 		return false

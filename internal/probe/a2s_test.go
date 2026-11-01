@@ -12,6 +12,8 @@ func TestGameProtocolAllowlist(t *testing.T) {
 	}{
 		{"cs2", "a2s", true},
 		{"dota2", "a2s", true},
+		{"tf2", "a2s", true},
+		{"dayz", "a2s", false},
 		{"valorant", "a2s", false},
 		{"cs2", "future-method", false},
 		{"custom", "a2s", false},
