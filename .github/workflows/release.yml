@@ -244,10 +244,27 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $runUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
-          $generatedNotes = gh api --method POST "repos/$env:GITHUB_REPOSITORY/releases/generate-notes" `
-            -f "tag_name=$env:GITHUB_REF_NAME" --jq .body
+          # The notes are this tag's section of CHANGELOG.md: from its
+          # "## <tag>" heading up to the next "## " heading.
+          $heading = '^## ' + [regex]::Escape($env:GITHUB_REF_NAME) + '(\s|$)'
+          $section = @()
+          $inSection = $false
+          foreach ($line in (Get-Content CHANGELOG.md)) {
+            if ($line -match '^## ') {
+              if ($inSection) { break }
+              $inSection = $line -match $heading
+              continue
+            }
+            if ($inSection) { $section += $line }
+          }
+          $changes = ($section -join "`n").Trim()
+          if (-not $changes) {
+            throw "CHANGELOG.md has no section for $env:GITHUB_REF_NAME."
+          }
           @(
-            $generatedNotes
+            "## What's changed"
+            ""
+            $changes
             ""
             "## Build details"
             ""
