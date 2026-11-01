@@ -44,13 +44,10 @@ Each release on GitHub uses its section from this file as its notes.
 
 ## v0.7.9 (2026-07-22)
 
-- No changes to the app. Release process fix only.
-
-## v0.7.8 (2026-07-22)
-
 - Fixes IPv6 game traffic. Windows reports IPv6 traffic with a different
   event code, and the app rejected those events, so it missed games that
   reach their servers over IPv6. The app now accepts them.
+- The v0.7.8 build failed, so this is the first release with the fix.
 
 ## v0.7.6 (2026-07-19)
 
