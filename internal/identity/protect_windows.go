@@ -4,9 +4,13 @@ package identity
 
 import (
 	"fmt"
-	"golang.org/x/sys/windows"
+	"runtime"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
+
+const cryptProtectUIForbidden = 0x1
 
 type dataBlob struct {
 	cbData uint32
@@ -34,7 +38,9 @@ func blobBytes(b dataBlob) []byte {
 func protect(in []byte) ([]byte, error) {
 	src := blob(in)
 	var out dataBlob
-	r, _, e := cryptProtectData.Call(uintptr(unsafe.Pointer(&src)), 0, 0, 0, 0, 1, uintptr(unsafe.Pointer(&out)))
+	r, _, e := cryptProtectData.Call(uintptr(unsafe.Pointer(&src)), 0, 0, 0, 0, cryptProtectUIForbidden, uintptr(unsafe.Pointer(&out)))
+	runtime.KeepAlive(in)
+	runtime.KeepAlive(&src)
 	if r == 0 {
 		return nil, fmt.Errorf("CryptProtectData: %w", e)
 	}
@@ -44,7 +50,9 @@ func protect(in []byte) ([]byte, error) {
 func unprotect(in []byte) ([]byte, error) {
 	src := blob(in)
 	var out dataBlob
-	r, _, e := cryptUnprotectData.Call(uintptr(unsafe.Pointer(&src)), 0, 0, 0, 0, 0, uintptr(unsafe.Pointer(&out)))
+	r, _, e := cryptUnprotectData.Call(uintptr(unsafe.Pointer(&src)), 0, 0, 0, 0, cryptProtectUIForbidden, uintptr(unsafe.Pointer(&out)))
+	runtime.KeepAlive(in)
+	runtime.KeepAlive(&src)
 	if r == 0 {
 		return nil, fmt.Errorf("CryptUnprotectData: %w", e)
 	}

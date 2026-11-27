@@ -112,7 +112,7 @@ interrupts a recording.
 PingRank watches Windows, never the game:
 
 - It loads no code into the game.
-- It does not read the game's memory or its files.
+- It does not read the game's memory or install files (only plain-text match logs where a game writes them, such as Rocket League).
 - It does not capture your traffic. It reads only the facts Windows
   reports about each connection: addresses, ports, and packet counts.
 - It uses only documented Windows interfaces — the same ones the Windows
@@ -127,7 +127,7 @@ down. Last-hop results read a little low; they are marked as estimates.
 
 One entry in [internal/detect/signatures.json](internal/detect/signatures.json):
 `gameId`, `displayName`, `exeNames`, and optional hints (known server
-ports, a game-protocol probe, relay networks). About 22 games ship today.
+ports, a game-protocol probe, relay networks). 33 games ship today.
 Pull requests are welcome.
 
 ## Build from source

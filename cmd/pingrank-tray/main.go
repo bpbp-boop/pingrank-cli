@@ -61,6 +61,7 @@ var (
 	shell32                 = windows.NewLazySystemDLL("shell32.dll")
 	kernel32                = windows.NewLazySystemDLL("kernel32.dll")
 	procRegisterClassEx     = user32.NewProc("RegisterClassExW")
+	procRegisterWindowMsg   = user32.NewProc("RegisterWindowMessageW")
 	procCreateWindowEx      = user32.NewProc("CreateWindowExW")
 	procDefWindowProc       = user32.NewProc("DefWindowProcW")
 	procGetMessage          = user32.NewProc("GetMessageW")
@@ -81,9 +82,10 @@ var (
 	procShellExecuteEx      = shell32.NewProc("ShellExecuteExW")
 	procGetModuleHandle     = kernel32.NewProc("GetModuleHandleW")
 
-	trayDataDir string
-	trayIcon    uintptr
-	trayStatus  = "PingRank.gg service status unavailable"
+	trayDataDir      string
+	trayIcon         uintptr
+	wmTaskbarCreated uint32
+	trayStatus       = "PingRank.gg service status unavailable"
 )
 
 type point struct{ X, Y int32 }
@@ -189,6 +191,10 @@ func main() {
 
 func runTray() error {
 	trayLog("registering tray window class")
+	if tbName, err := windows.UTF16PtrFromString("TaskbarCreated"); err == nil {
+		r, _, _ := procRegisterWindowMsg.Call(uintptr(unsafe.Pointer(tbName)))
+		wmTaskbarCreated = uint32(r)
+	}
 	className, _ := windows.UTF16PtrFromString("PingRankGGTrayWindow")
 	instance, _, _ := procGetModuleHandle.Call(0)
 	icon := loadAppIcon()
@@ -246,6 +252,11 @@ func runTray() error {
 
 func windowProc(hwnd, rawMsg, wParam, lParam uintptr) uintptr {
 	msg := uint32(rawMsg)
+	if wmTaskbarCreated != 0 && msg == wmTaskbarCreated {
+		// Explorer restarted; re-register the notification icon.
+		notifyIcon(nimAdd, hwnd, trayIcon, trayStatus)
+		return 0
+	}
 	switch msg {
 	case wmRefresh:
 		refreshStatus(hwnd)

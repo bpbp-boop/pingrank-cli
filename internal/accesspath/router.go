@@ -53,7 +53,7 @@ func QueryRouter(ctx context.Context, local LocalState) RouterResult {
 			return RouterResult{ExternalIPv4: a, Source: "nat-pmp", Status: "ok"}
 		}
 	}
-	if a, err := queryUPnP(ctx); err == nil {
+	if a, err := queryUPnP(ctx, local.DefaultIPv4Gateway); err == nil {
 		return RouterResult{ExternalIPv4: a, Source: "upnp", Status: "ok"}
 	}
 	return RouterResult{Status: "unavailable"}
@@ -153,7 +153,42 @@ type upnpService struct {
 	Control string `xml:"controlURL"`
 }
 
-func queryUPnP(ctx context.Context) (netip.Addr, error) {
+func validGatewayURL(raw string, gateway netip.Addr) (*url.URL, error) {
+	if !gateway.IsValid() {
+		return nil, fmt.Errorf("upnp: no gateway address")
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return nil, fmt.Errorf("upnp: invalid url: %w", err)
+	}
+	if !strings.EqualFold(u.Scheme, "http") {
+		return nil, fmt.Errorf("upnp: unsupported scheme %q", u.Scheme)
+	}
+	host, err := netip.ParseAddr(u.Hostname())
+	if err != nil || host.Unmap() != gateway.Unmap() {
+		return nil, fmt.Errorf("upnp: host %q does not match default gateway %s", u.Hostname(), gateway)
+	}
+	return u, nil
+}
+
+func validUPnPServiceType(s string) bool {
+	if !strings.HasPrefix(s, "urn:schemas-upnp-org:service:WANIPConnection:") &&
+		!strings.HasPrefix(s, "urn:schemas-upnp-org:service:WANPPPConnection:") {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == ':' || c == '-' || c == '_') {
+			return false
+		}
+	}
+	return true
+}
+
+func queryUPnP(ctx context.Context, gateway netip.Addr) (netip.Addr, error) {
+	if !gateway.IsValid() {
+		return netip.Addr{}, fmt.Errorf("upnp: no default gateway")
+	}
 	c, err := net.ListenUDP("udp4", nil)
 	if err != nil {
 		return netip.Addr{}, err
@@ -179,8 +214,20 @@ func queryUPnP(ctx context.Context) (netip.Addr, error) {
 	if location == "" {
 		return netip.Addr{}, fmt.Errorf("upnp: no location")
 	}
-	hc := &http.Client{Timeout: 2 * time.Second}
-	hreq, _ := http.NewRequestWithContext(ctx, http.MethodGet, location, nil)
+	base, err := validGatewayURL(location, gateway)
+	if err != nil {
+		return netip.Addr{}, err
+	}
+	hc := &http.Client{
+		Timeout: 2 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	hreq, err := http.NewRequestWithContext(ctx, http.MethodGet, base.String(), nil)
+	if err != nil {
+		return netip.Addr{}, err
+	}
 	resp, err := hc.Do(hreq)
 	if err != nil {
 		return netip.Addr{}, err
@@ -195,14 +242,22 @@ func queryUPnP(ctx context.Context) (netip.Addr, error) {
 		return netip.Addr{}, err
 	}
 	service := findUPnPService(root.Devices)
-	if service.Control == "" {
+	if service.Control == "" || !validUPnPServiceType(service.Type) {
 		return netip.Addr{}, fmt.Errorf("upnp: WANIPConnection unavailable")
 	}
-	base, _ := url.Parse(location)
-	control, _ := url.Parse(service.Control)
-	endpoint := base.ResolveReference(control).String()
+	control, err := url.Parse(service.Control)
+	if err != nil {
+		return netip.Addr{}, fmt.Errorf("upnp: invalid controlURL: %w", err)
+	}
+	endpointURL, err := validGatewayURL(base.ResolveReference(control).String(), gateway)
+	if err != nil {
+		return netip.Addr{}, err
+	}
 	body := `<?xml version="1.0"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><u:GetExternalIPAddress xmlns:u="` + service.Type + `"></u:GetExternalIPAddress></s:Body></s:Envelope>`
-	sreq, _ := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(body))
+	sreq, err := http.NewRequestWithContext(ctx, http.MethodPost, endpointURL.String(), strings.NewReader(body))
+	if err != nil {
+		return netip.Addr{}, err
+	}
 	sreq.Header.Set("Content-Type", `text/xml; charset="utf-8"`)
 	sreq.Header.Set("SOAPAction", `"`+service.Type+`#GetExternalIPAddress"`)
 	sresp, err := hc.Do(sreq)

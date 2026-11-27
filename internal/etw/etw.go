@@ -336,13 +336,15 @@ func newProperties() (*eventTraceProperties, []byte) {
 // stopExisting stops a stale session left behind by a previous run
 // (session names are system-global). Missing session is not an error.
 func stopExisting(namePtr *uint16) {
-	props, _ := newProperties()
+	props, buf := newProperties()
 	procControlTraceW.Call(
 		0,
 		uintptr(unsafe.Pointer(namePtr)),
 		uintptr(unsafe.Pointer(props)),
 		eventTraceControlStop,
 	)
+	runtime.KeepAlive(namePtr)
+	runtime.KeepAlive(buf)
 }
 
 // startSession starts an empty real-time trace and its consumer. Providers are
@@ -665,8 +667,8 @@ func (s *Session) onEvent(rec *eventRecord) uintptr {
 		dport = uint16(data[16])<<8 | uint16(data[17])
 		sport = uint16(data[18])<<8 | uint16(data[19])
 	} else {
-		daddr = netip.AddrFrom16(*(*[16]byte)(data[8:24]))
-		saddr = netip.AddrFrom16(*(*[16]byte)(data[24:40]))
+		daddr = netip.AddrFrom16(*(*[16]byte)(data[8:24])).Unmap()
+		saddr = netip.AddrFrom16(*(*[16]byte)(data[24:40])).Unmap()
 		dport = uint16(data[40])<<8 | uint16(data[41])
 		sport = uint16(data[42])<<8 | uint16(data[43])
 	}
@@ -725,13 +727,15 @@ func (s *Session) Close() error {
 	s.closed = true
 	s.controlMu.Unlock()
 
-	props, _ := newProperties()
+	props, buf := newProperties()
 	procControlTraceW.Call(
 		s.traceHandle,
 		uintptr(unsafe.Pointer(s.namePtr)),
 		uintptr(unsafe.Pointer(props)),
 		eventTraceControlStop,
 	)
+	runtime.KeepAlive(buf)
+	runtime.KeepAlive(s.namePtr)
 	procCloseTrace.Call(s.consumerHandle)
 	<-s.done
 	return nil

@@ -321,13 +321,18 @@ loop:
 			if cands := col.Candidates(); len(cands) > 0 {
 				top = &cands[0]
 			}
+			pollInterval := slowDiscovery
+			if seg == nil {
+				pollInterval = fastDiscovery
+			}
 			if tracker.Observe(top, minConfidence(src == nil, time.Since(start))) {
-				pollInterval := slowDiscovery
-				if seg == nil {
-					pollInterval = fastDiscovery
-				}
 				observedFor := time.Duration(tracker.Active().ObservedPolls) * pollInterval
 				seg = r.rotateSegment(seg, *tracker.Active(), &nextSeq, g, logEndpoints, observedFor)
+			} else if seg != nil && tracker.Active() != nil && tracker.Active().Remote == seg.cand.Remote && tracker.Active().Proto == seg.cand.Proto {
+				// Keep seg.traffic current so games that lock during warm-up
+				// (Valorant, PUBG) can promote once active match traffic begins.
+				seg.cand = *tracker.Active()
+				seg.traffic = trafficEvidence(seg.cand, time.Duration(seg.cand.ObservedPolls)*slowDiscovery)
 			}
 			r.refreshClassification(seg, g, logEndpoints)
 			if tracker.Active() == nil {

@@ -352,6 +352,7 @@ func (c *Collector) rank(key trackKey, t *track) Candidate {
 // loopback, link-local, CGNAT (RFC 6598), multicast, unspecified, and
 // broadcast.
 func IsPublic(addr netip.Addr) bool {
+	addr = addr.Unmap()
 	if !addr.IsValid() || addr.IsUnspecified() || addr.IsLoopback() ||
 		addr.IsPrivate() || addr.IsLinkLocalUnicast() || addr.IsLinkLocalMulticast() ||
 		addr.IsMulticast() {

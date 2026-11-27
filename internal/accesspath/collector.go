@@ -16,7 +16,7 @@ func Measure(ctx context.Context, reflectors []Reflector) (Result, error) {
 	if router.Mapping != nil {
 		defer router.Mapping.Close()
 	}
-	m := Measurements{LocalIPv4Available: local.LocalIPv4.IsValid(), LocalIPv4Global: local.LocalIPv4.IsValid() && local.LocalIPv4.IsGlobalUnicast() && !local.LocalIPv4.IsPrivate(), NativeIPv4Available: local.LocalIPv4.IsValid() && addressCategory(local.LocalIPv4) != "service-continuity", GlobalIPv6Available: globalIPv6Prefix(local.LocalIPv6) != "", IPv6Prefix: globalIPv6Prefix(local.LocalIPv6), RouterExternalSource: router.Source, RouterQueryStatus: router.Status, TestedAt: time.Now().UTC()}
+	m := Measurements{LocalIPv4Available: local.LocalIPv4.IsValid(), LocalIPv4Global: local.LocalIPv4.IsValid() && addressCategory(local.LocalIPv4) == "public", NativeIPv4Available: local.LocalIPv4.IsValid() && addressCategory(local.LocalIPv4) != "service-continuity", GlobalIPv6Available: globalIPv6Prefix(local.LocalIPv6) != "", IPv6Prefix: globalIPv6Prefix(local.LocalIPv6), RouterExternalSource: router.Source, RouterQueryStatus: router.Status, TestedAt: time.Now().UTC()}
 	if router.ExternalIPv4.IsValid() {
 		m.RouterExternalIPv4 = router.ExternalIPv4.String()
 	}

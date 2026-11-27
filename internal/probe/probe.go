@@ -15,6 +15,7 @@ package probe
 import (
 	"fmt"
 	"net/netip"
+	"runtime"
 	"time"
 	"unsafe"
 
@@ -168,6 +169,9 @@ func echo4(handle uintptr, dst netip.Addr, ttl uint8, timeout time.Duration) (ec
 		uintptr(len(replyBuf)),
 		uintptr(timeout.Milliseconds()),
 	)
+	runtime.KeepAlive(&opts)
+	runtime.KeepAlive(payload)
+	runtime.KeepAlive(replyBuf)
 	rep := *(*icmpEchoReply)(unsafe.Pointer(&replyBuf[0]))
 	r := echoReply{
 		addr: netip.AddrFrom4([4]byte{byte(rep.Address), byte(rep.Address >> 8),
@@ -196,7 +200,9 @@ func echo6(handle uintptr, dst netip.Addr, hopLimit uint8, timeout time.Duration
 	src := sockaddrIn6{Family: windows.AF_INET6}
 	d := sockaddrIn6{Family: windows.AF_INET6, Addr: dst.As16()}
 	opts := ipOptionInformation{TTL: hopLimit}
-	replyBuf := make([]byte, unsafe.Sizeof(icmpv6EchoReply{})+uintptr(len(payload))+8)
+	// Microsoft docs require reply buffer >= sizeof(ICMPV6_ECHO_REPLY) +
+	// RequestSize + 8 + sizeof(IO_STATUS_BLOCK) (16 bytes on amd64).
+	replyBuf := make([]byte, unsafe.Sizeof(icmpv6EchoReply{})+uintptr(len(payload))+8+16)
 
 	n, _, _ := procIcmp6SendEcho2.Call(
 		handle,
@@ -212,6 +218,11 @@ func echo6(handle uintptr, dst netip.Addr, hopLimit uint8, timeout time.Duration
 		uintptr(len(replyBuf)),
 		uintptr(timeout.Milliseconds()),
 	)
+	runtime.KeepAlive(&src)
+	runtime.KeepAlive(&d)
+	runtime.KeepAlive(&opts)
+	runtime.KeepAlive(payload)
+	runtime.KeepAlive(replyBuf)
 	rep := *(*icmpv6EchoReply)(unsafe.Pointer(&replyBuf[0]))
 	r := echoReply{addr: rep.addr(), status: rep.Status, rtt: rep.RoundTripTime}
 	if n == 0 {
@@ -357,6 +368,12 @@ func (IcmpProber) Resolve(target netip.Addr, count int) (Result, error) {
 		res.Probed = target
 		res.Stats = direct
 		res.Note = "no ICMP response from target and no responding intermediate hop; latency unknown"
+		return res, nil
+	}
+	if hop == target {
+		res.Method = "direct"
+		res.Probed = target
+		res.Stats = ping(sender(h, target), count)
 		return res, nil
 	}
 	res.Method = "last-hop"

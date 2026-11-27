@@ -51,5 +51,11 @@ func parsePublicEndpoint(value string) (netip.AddrPort, bool) {
 	if !addr.IsGlobalUnicast() || addr.IsPrivate() || addr.IsLoopback() || addr.IsLinkLocalUnicast() {
 		return netip.AddrPort{}, false
 	}
+	if addr.Is4() {
+		b := addr.As4()
+		if b[0] == 100 && b[1] >= 64 && b[1] <= 127 {
+			return netip.AddrPort{}, false
+		}
+	}
 	return netip.AddrPortFrom(addr, endpoint.Port()), true
 }

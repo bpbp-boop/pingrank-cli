@@ -14,6 +14,7 @@ import (
 	"pingrank.gg/internal/cgnat"
 	"pingrank.gg/internal/detect"
 	"pingrank.gg/internal/etw"
+	"pingrank.gg/internal/gamelog"
 	"pingrank.gg/internal/identity"
 	"pingrank.gg/internal/probe"
 	"pingrank.gg/internal/session"
@@ -38,6 +39,10 @@ func (a etwAdapter) TakeFlows() []session.Flow {
 			Remote:        f.Remote,
 			Bidirectional: f.Bidirectional(),
 			Packets:       f.SentPkts + f.RecvPkts,
+			SentPackets:   f.SentPkts,
+			RecvPackets:   f.RecvPkts,
+			SentBytes:     f.SentBytes,
+			RecvBytes:     f.RecvBytes,
 		})
 	}
 	return out
@@ -176,15 +181,7 @@ func cmdRecord(args []string) int {
 		fmt.Fprintf(statusOut, "\r%-78s", line)
 	}
 
-	rec := session.NewRecorder(session.Config{
-		Signatures:    sigs,
-		GameExe:       *gameExe,
-		Interval:      *interval,
-		MaxDuration:   *forDur,
-		ClientVersion: clientVersion,
-		Emit:          emit,
-		Status:        status,
-	}, session.Deps{
+	deps := session.Deps{
 		Lister:  detect.ToolhelpLister{},
 		Querier: sockets.SystemQuerier{},
 		Prober:  probe.IcmpProber{},
@@ -200,10 +197,30 @@ func cmdRecord(args []string) int {
 			}
 			return etwAdapter{s: flowSession}, nil
 		},
-		CGNAT:      cgnat.SystemDetector{Tracer: probe.IcmpProber{}},
-		AccessPath: accesspath.CachedDetector{Reflectors: accesspath.ReflectorsFromEnv()},
-		AgentID:    creds.AgentID,
-	})
+		OpenGameLog: func(gameID string) (session.GameLogSource, error) {
+			src, err := gamelog.OpenLive(gameID)
+			if err != nil || src == nil {
+				return nil, err
+			}
+			return src, nil
+		},
+		AgentID:     creds.AgentID,
+	}
+	// Honor -no-share strictly: do not contact reflectors or external trace targets
+	// when the user asked to stay local-only.
+	if sharing {
+		deps.CGNAT = cgnat.SystemDetector{Tracer: probe.IcmpProber{}}
+		deps.AccessPath = accesspath.CachedDetector{Reflectors: accesspath.ReflectorsFromEnv()}
+	}
+	rec := session.NewRecorder(session.Config{
+		Signatures:    sigs,
+		GameExe:       *gameExe,
+		Interval:      *interval,
+		MaxDuration:   *forDur,
+		ClientVersion: clientVersion,
+		Emit:          emit,
+		Status:        status,
+	}, deps)
 
 	runErr := rec.Run(ctx)
 	if w != nil {
@@ -218,6 +235,9 @@ func cmdRecord(args []string) int {
 		return 1
 	}
 	if len(records) == 0 {
+		if live != nil {
+			_, _ = live.Close()
+		}
 		fmt.Fprintln(statusOut, "no session recorded")
 		return 0
 	}

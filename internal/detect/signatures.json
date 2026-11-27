@@ -64,7 +64,8 @@
   {
     "gameId": "gtaonline",
     "displayName": "GTA Online",
-    "exeNames": ["GTA5.exe", "GTA5_Enhanced.exe"]
+    "exeNames": ["GTA5.exe", "GTA5_Enhanced.exe"],
+    "peerToPeer": true
   },
   {
     "gameId": "minecraft-bedrock",

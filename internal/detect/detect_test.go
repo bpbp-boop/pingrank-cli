@@ -19,8 +19,8 @@ func TestLoadSignatures(t *testing.T) {
 		if sig.GameID == "" || sig.DisplayName == "" || len(sig.ExeNames) == 0 {
 			t.Errorf("incomplete signature: %+v", sig)
 		}
-		if sig.GameID == "helldivers2" && !sig.PeerToPeer {
-			t.Error("Helldivers 2 signature is not marked peer-to-peer")
+		if (sig.GameID == "helldivers2" || sig.GameID == "gtaonline") && !sig.PeerToPeer {
+			t.Errorf("%s signature is not marked peer-to-peer", sig.GameID)
 		}
 	}
 }

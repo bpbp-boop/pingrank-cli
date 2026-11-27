@@ -2,6 +2,21 @@
 
 Each release on GitHub uses its section from this file as its notes.
 
+## v0.8.2 (2026-11-28)
+
+- Live uploads now batch events and retry after brief network drops instead of
+  stopping for the rest of the session.
+- Hardens router discovery (UPnP) so it talks only to your default gateway and
+  ignores malformed replies.
+- Fixes Valorant and PUBG detection in `pingrank record` and refreshes traffic
+  stats so matches that start quiet still qualify.
+- Fixes Rocket League match-log detection in the background service,
+  IPv4-mapped IPv6 handling, and ICMPv6 ping replies.
+- Re-adds the tray icon if Windows Explorer restarts.
+- `pingrank record -no-share` no longer runs external reflector or trace checks,
+  and shared recordings send only the access fields the server needs.
+- Marks GTA Online as peer-to-peer.
+
 ## v0.8.1 (2026-11-01)
 
 - No changes to the app. This release tests automatic updates from v0.8.0.
